@@ -175,7 +175,7 @@ setInterval(async ()=>{
         method:'GET',
         uri:'https://kaiserweatherbot.herokuapp.com/'
     })
-},200000)
+},30000)
 
 bot.hears('hi', (ctx) => ctx.reply('Hey there'))
 
