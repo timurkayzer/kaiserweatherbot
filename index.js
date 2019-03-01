@@ -2,6 +2,7 @@ const Telegraf = require('telegraf');
 const Accuweather = require('accuweather')
 const request = require('request-promise')
 const session = require('telegraf/session')
+const express = require('express')
 
 const botToken = "782533565:AAHMeuReuty_JBuLEG3-jqPhWNGMgi5r8pk"
 const accuToken = "mdQgHIAtLVH55uJ4A7g1TfQNw1C8ODL0"
@@ -176,6 +177,13 @@ setInterval(async ()=>{
         uri:'https://kaiserweatherbot.herokuapp.com/'
     })
 },30000)
+
+const app = express()
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Our app is running on port ${ PORT }`);
+});
 
 bot.hears('hi', (ctx) => ctx.reply('Hey there'))
 
