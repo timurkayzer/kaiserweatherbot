@@ -170,12 +170,12 @@ bot.on('location', async (ctx) => {
 })
 
 
-setInterval(()=>{
-    request.get({
+setInterval(async ()=>{
+    await request({
         method:'GET',
         uri:'https://kaiserweatherbot.herokuapp.com/'
     })
-},30000)
+},300000)
 
 bot.hears('hi', (ctx) => ctx.reply('Hey there'))
 
