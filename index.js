@@ -15,11 +15,15 @@ bot.use(session())
 bot.start((ctx) => ctx.reply('Welcome! Send your location to get weather forecast!'))
 bot.help((ctx) => ctx.reply('Send this bot your location to get weather report'))
 
+bot.command('/weather1day',ctx=>{
+    ctx.reply('This command does not work currently. Coming soon!')
+})
 
-bot.command('weather',async (ctx)=>{
-    if( (typeof ctx.session.locationKey) !== 'undefined'){
+bot.command('/weather5days',ctx=>{
+    if(ctx.session.locationKey){
 
         let locationKey = ctx.session.locationKey
+
         request({
             method: 'GET',
             uri: `http://dataservice.accuweather.com/forecasts/v1/daily/5day/${locationKey}?apikey=${accuToken}&metric=true`
@@ -32,15 +36,27 @@ bot.command('weather',async (ctx)=>{
 
                     let forecastArray = []
 
-                    for (let i in results.DailyForecasts) {
+                    /*for (let i in results.DailyForecasts) {
                         forecastArray.pop(results.DailyForecasts[i])
+                    }*/
+
+                    forecastArray = results.DailyForecasts
+                    forecastArray = forecastArray.reverse()
+
+                    let temp
+                    for(let i in forecastArray){
+                        for(let j in forecastArray ){
+                            if(Number.parseInt(forecastArray[i].EpochDate) < Number.parseInt(forecastArray[j].EpochDate)){
+                                temp = forecastArray[j]
+                                forecastArray[j] = forecastArray[i]
+                                forecastArray[i] = temp
+                            }
+                        }
                     }
 
-
+                    message = 'Weather in '+ ctx.session.locationName + '\n\n'
 
                     for (let i in forecastArray) {
-
-                        message = ''
 
                         let forecast = results.DailyForecasts[i]
                         let date = new Date(Number.parseInt(`${forecast.EpochDate}000`))
@@ -48,18 +64,19 @@ bot.command('weather',async (ctx)=>{
 
                         message += `<b>${dateString}</b>\n\n`
 
-                        message += 'Temperature:\n'
+                        message += '🌡  Temperature:\n'
                         message += forecast.Temperature.Minimum.Value + ' ' + forecast.Temperature.Minimum.Unit + ' - ' +
                             forecast.Temperature.Maximum.Value + ' ' + forecast.Temperature.Maximum.Unit + '\n\n'
 
-                        message += 'Day:\n'
+                        message += '🌞 <b>Day</b>:\n'
                         message += forecast.Day.IconPhrase + '\n\n'
 
-                        message += 'Night:\n'
-                        message += forecast.Night.IconPhrase
+                        message += '🌛 <b>Night</b>:\n'
+                        message += forecast.Night.IconPhrase + '\n\n\n'
 
-                        await ctx.replyWithHTML(message)
                     }
+                    ctx.replyWithHTML(message)
+
                 }
                 catch (e) {
                     console.log(e)
@@ -71,10 +88,11 @@ bot.command('weather',async (ctx)=>{
                 console.log(e)
                 ctx.reply('Sorry, service is currently not awailable. Please try later.')
             })
-    }
-    else
-        ctx.reply('First send your location, please')
 
+    }
+    else{
+        ctx.reply('Please, send your location first.')
+    }
 })
 
 bot.on('location', async (ctx) => {
@@ -87,76 +105,14 @@ bot.on('location', async (ctx) => {
     })
         .then((result) => {
             try {
+                console.log(result)
                 let resultObject = JSON.parse(result)
                 let locationKey = resultObject.Key
+                let locationName = resultObject.LocalizedName
 
                 ctx.session.locationKey = locationKey
-                ctx.reply('Now you can type /weather to see weather in your current city')
-
-                request({
-                    method: 'GET',
-                    uri: `http://dataservice.accuweather.com/forecasts/v1/daily/5day/${locationKey}?apikey=${accuToken}&metric=true`
-                })
-                    .then(async (result) => {
-                        try {
-                            let results = JSON.parse(result)
-
-                            let message
-
-                            let forecastArray = []
-
-                            /*for (let i in results.DailyForecasts) {
-                                forecastArray.pop(results.DailyForecasts[i])
-                            }*/
-
-                            forecastArray = results.DailyForecasts
-                            forecastArray = forecastArray.reverse()
-
-                            let temp
-                            for(let i in forecastArray){
-                                for(let j in forecastArray ){
-                                    if(Number.parseInt(forecastArray[i].EpochDate) < Number.parseInt(forecastArray[j].EpochDate)){
-                                        temp = forecastArray[j]
-                                        forecastArray[j] = forecastArray[i]
-                                        forecastArray[i] = temp
-                                    }
-                                }
-                            }
-
-                            for (let i in forecastArray) {
-
-                                message = ''
-
-                                let forecast = results.DailyForecasts[i]
-                                let date = new Date(Number.parseInt(`${forecast.EpochDate}000`))
-                                let dateString = date.getDate() + ' ' + months[date.getMonth()]
-
-                                message += `<b>${dateString}</b>\n\n`
-
-                                message += '🌡  Temperature:\n'
-                                message += forecast.Temperature.Minimum.Value + ' ' + forecast.Temperature.Minimum.Unit + ' - ' +
-                                    forecast.Temperature.Maximum.Value + ' ' + forecast.Temperature.Maximum.Unit + '\n\n'
-
-                                message += '🌞 <b>Day</b>:\n'
-                                message += forecast.Day.IconPhrase + '\n\n'
-
-                                message += '🌛 <b>Night</b>:\n'
-                                message += forecast.Night.IconPhrase
-
-                                await ctx.replyWithHTML(message)
-                            }
-                        }
-                        catch (e) {
-                            console.log(e)
-                            ctx.reply('Sorry, service is currently not awailable. Please try later.')
-                        }
-                        console.log(JSON.parse(result))
-                    })
-                    .catch((e) => {
-                        console.log(e)
-                        ctx.reply('Sorry, service is currently not awailable. Please try later.')
-                    })
-
+                ctx.session.locationName = locationName
+                ctx.reply('Location saved. Now select one of bot commands.')
 
             }
             catch (e) {
