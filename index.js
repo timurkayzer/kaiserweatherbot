@@ -144,3 +144,7 @@ app.listen(PORT, () => {
 bot.hears('hi', (ctx) => ctx.reply('Hey there'))
 
 bot.launch()
+
+process.on('unhandledRejection',error=>{
+    console.log(error)
+})
