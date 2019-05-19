@@ -16,7 +16,79 @@ bot.start((ctx) => ctx.reply('Welcome! Send your location to get weather forecas
 bot.help((ctx) => ctx.reply('Send this bot your location to get weather report'))
 
 bot.command('/weather1day',ctx=>{
-    ctx.reply('This command does not work currently. Coming soon!')
+    if(ctx.session.locationKey){
+
+        let locationKey = ctx.session.locationKey
+
+        request({
+            method: 'GET',
+            uri: `http://dataservice.accuweather.com/forecasts/v1/daily/1day/${locationKey}?apikey=${accuToken}&metric=true`
+        })
+            .then(async (result) => {
+                try {
+                    let results = JSON.parse(result)
+
+                    let message
+
+                    let forecastArray = []
+
+                    /*for (let i in results.DailyForecasts) {
+                        forecastArray.pop(results.DailyForecasts[i])
+                    }*/
+
+                    forecastArray = results.DailyForecasts
+                    forecastArray = forecastArray.reverse()
+
+                    let temp
+                    for(let i in forecastArray){
+                        for(let j in forecastArray ){
+                            if(Number.parseInt(forecastArray[i].EpochDate) < Number.parseInt(forecastArray[j].EpochDate)){
+                                temp = forecastArray[j]
+                                forecastArray[j] = forecastArray[i]
+                                forecastArray[i] = temp
+                            }
+                        }
+                    }
+
+                    message = 'Weather in '+ ctx.session.locationName + '\n\n'
+
+                    for (let i in forecastArray) {
+
+                        let forecast = results.DailyForecasts[i]
+                        let date = new Date(Number.parseInt(`${forecast.EpochDate}000`))
+                        let dateString = date.getDate() + ' ' + months[date.getMonth()]
+
+                        message += `<b>${dateString}</b>\n\n`
+
+                        message += '🌡  Temperature:\n'
+                        message += forecast.Temperature.Minimum.Value + ' ' + forecast.Temperature.Minimum.Unit + ' - ' +
+                            forecast.Temperature.Maximum.Value + ' ' + forecast.Temperature.Maximum.Unit + '\n\n'
+
+                        message += '🌞 <b>Day</b>:\n'
+                        message += forecast.Day.IconPhrase + '\n\n'
+
+                        message += '🌛 <b>Night</b>:\n'
+                        message += forecast.Night.IconPhrase + '\n\n\n'
+
+                    }
+                    ctx.replyWithHTML(message)
+
+                }
+                catch (e) {
+                    console.log(e)
+                    ctx.reply('Sorry, service is currently not awailable. Please try later.')
+                }
+                console.log(JSON.parse(result))
+            })
+            .catch((e) => {
+                console.log(e)
+                ctx.reply('Sorry, service is currently not awailable. Please try later.')
+            })
+
+    }
+    else{
+        ctx.reply('Please, send your location first.')
+    }
 })
 
 bot.command('/weather5days',ctx=>{
@@ -95,6 +167,68 @@ bot.command('/weather5days',ctx=>{
     }
 })
 
+bot.command('/weather12hours',ctx=>{
+    if(ctx.session.locationKey){
+
+        let locationKey = ctx.session.locationKey
+
+        request({
+            method: 'GET',
+            uri: `http://dataservice.accuweather.com/forecasts/v1/hourly/12hour/${locationKey}?apikey=${accuToken}&metric=true&details=true`
+        })
+            .then(async (result) => {
+                try {
+                    let results = JSON.parse(result)
+
+                    let message
+
+                    message = 'Weather in '+ ctx.session.locationName + '\n\n'
+
+                    let hours
+                    let minutes
+
+                    for (let i in results) {
+
+
+
+                        let forecast = results[i]
+                        let date = new Date(Number.parseInt(`${forecast.EpochDateTime}000`))
+
+                        hours = date.getHours().toString()
+                        hours = hours.length < 2 ? `0${hours}` : hours
+
+                        minutes = date.getMinutes().toString()
+                        minutes = minutes.length < 2 ? `0${minutes}` : minutes
+
+                        let dateString = hours + ':' + minutes
+
+                        message += `<b>${dateString}</b>\n\n`
+
+                        message += '🌡  Temperature:\n'
+                        message += forecast.Temperature.Value + ' ' + forecast.Temperature.Unit + ' - ' + '\n\n'
+
+                        message += '🌞  Feels like:\n'
+                        message += forecast.RealFeelTemperature.Value + ' ' + forecast.RealFeelTemperature.Unit + ' - ' + '\n\n'
+                    }
+                    ctx.replyWithHTML(message)
+
+                }
+                catch (e) {
+                    console.log(e)
+                    ctx.reply('Sorry, service is currently not awailable. Please try later.')
+                }
+            })
+            .catch((e) => {
+                console.log(e)
+                ctx.reply('Sorry, service is currently not awailable. Please try later.')
+            })
+
+    }
+    else{
+        ctx.reply('Please, send your location first.')
+    }
+})
+
 bot.on('location', async (ctx) => {
 
     const location = ctx.update.message.location
@@ -105,7 +239,6 @@ bot.on('location', async (ctx) => {
     })
         .then((result) => {
             try {
-                console.log(result)
                 let resultObject = JSON.parse(result)
                 let locationKey = resultObject.Key
                 let locationName = resultObject.LocalizedName
